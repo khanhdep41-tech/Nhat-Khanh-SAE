@@ -1,7 +1,7 @@
 
 --========================================
 -- Sena Hub X Nhat Khanh
--- Language GUI + Sena Loader
+-- Draggable Language GUI
 --========================================
 
 local Players = game:GetService("Players")
@@ -9,73 +9,130 @@ local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-
--- GUI parent
-local parent
-pcall(function()
-    if type(gethui) == "function" then
-        parent = gethui()
-    end
-end)
-
-if not parent then
-    parent = player:WaitForChild("PlayerGui")
-end
-
--- Remove old GUI
-pcall(function()
-    local old = parent:FindFirstChild("SenaHubXNhatKhanh")
-    if old then
-        old:Destroy()
-    end
-end)
+local playerGui = player:WaitForChild("PlayerGui")
 
 -- Translation dictionary
 local translations = {
+    ["Sena Exclusive"] = "Sena Độc Quyền",
+    ["Donate"] = "Ủng hộ",
+    ["Home"] = "Trang chủ",
+    ["Steal"] = "Cướp",
+    ["Eggs &..."] = "Trứng &...",
+    ["Pets"] = "Thú cưng",
+    ["Events"] = "Sự kiện",
+    ["Task Order"] = "Thứ tự nhiệm vụ",
+    ["Auto Steal"] = "Tự động cướp",
+    ["Shooting Star"] = "Sao băng",
+    ["Auto Mobs"] = "Tự động đánh quái",
+    ["Auto Fishing"] = "Tự động câu cá",
+    ["Auto Sell"] = "Tự động bán",
+    ["Auto Hatch"] = "Tự động mở trứng",
+    ["Reset"] = "Đặt lại",
+    ["Search"] = "Tìm kiếm",
     ["Settings"] = "Cài đặt",
-    ["Setting"] = "Cài đặt",
-    ["Auto Farm"] = "Tự động farm",
-    ["Main"] = "Chính",
-    ["Misc"] = "Khác",
-    ["Visual"] = "Hiển thị",
-    ["Teleport"] = "Dịch chuyển",
-    ["Player"] = "Người chơi",
-    ["Shop"] = "Cửa hàng",
+    ["Inventory"] = "Túi đồ",
+    ["Eggs"] = "Trứng",
     ["Close"] = "Đóng",
     ["Open"] = "Mở",
     ["Save"] = "Lưu",
     ["Cancel"] = "Hủy",
-    ["Search"] = "Tìm kiếm",
     ["Enabled"] = "Đã bật",
     ["Disabled"] = "Đã tắt",
+    ["Waiting for reset wall"] = "Đang chờ tường đặt lại",
+    ["No star right now"] = "Hiện không có sao",
+    ["0 stolen"] = "Đã cướp: 0",
+    ["Search"] = "Tìm kiếm",
+    ["Task Order"] = "Thứ tự nhiệm vụ",
+    ["English"] = "Tiếng Anh",
     ["Language"] = "Ngôn ngữ",
-    ["Anti-AFK"] = "Chống treo",
+    ["Main"] = "Chính",
+    ["Misc"] = "Khác",
+    ["Teleport"] = "Dịch chuyển",
     ["Filter"] = "Bộ lọc",
     ["Rarity"] = "Độ hiếm",
-    ["CONFIG SETTING AUTO FARM"] = "CÀI ĐẶT AUTO FARM",
-    ["Inventory"] = "Túi đồ",
-    ["Upgrade"] = "Nâng cấp",
-    ["Teleport to Spawn"] = "Dịch chuyển về điểm hồi sinh",
-    ["Speed"] = "Tốc độ",
-    ["Jump Power"] = "Lực nhảy",
-    ["Reset"] = "Đặt lại",
 }
 
-local originals = setmetatable({}, {__mode = "k"})
-local currentLanguage = "vi"
+local originalText = setmetatable({}, {__mode = "k"})
+local lastTranslated = setmetatable({}, {__mode = "k"})
+local language = "vi"
 
--- GUI
+-- Get accessible GUI roots
+local function getRoots()
+    local roots = {playerGui}
+
+    pcall(function()
+        table.insert(roots, CoreGui)
+    end)
+
+    pcall(function()
+        if type(gethui) == "function" then
+            table.insert(roots, gethui())
+        end
+    end)
+
+    return roots
+end
+
+-- Translate exact matches
+local function translate(text)
+    return translations[text] or text
+end
+
+-- Scan accessible text objects
+local function scanGui()
+    for _, root in ipairs(getRoots()) do
+        pcall(function()
+            for _, obj in ipairs(root:GetDescendants()) do
+                if obj:IsA("TextLabel")
+                    or obj:IsA("TextButton")
+                    or obj:IsA("TextBox") then
+
+                    if not obj:FindFirstAncestor("SenaHubXNhatKhanh") then
+                        if originalText[obj] == nil then
+                            originalText[obj] = obj.Text
+                        elseif obj.Text ~= lastTranslated[obj] then
+                            originalText[obj] = obj.Text
+                        end
+
+                        local result = originalText[obj]
+
+                        if language == "vi" then
+                            result = translate(result)
+                        end
+
+                        obj.Text = result
+                        lastTranslated[obj] = result
+                    end
+                end
+            end
+        end)
+    end
+end
+
+-- Remove previous GUI
+for _, root in ipairs(getRoots()) do
+    pcall(function()
+        local old = root:FindFirstChild("SenaHubXNhatKhanh")
+        if old then old:Destroy() end
+    end)
+end
+
+-- Create GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "SenaHubXNhatKhanh"
 gui.ResetOnSpawn = false
 gui.DisplayOrder = 999999
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.Parent = parent
+gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "LanguagePanel"
 frame.Size = UDim2.fromOffset(280, 100)
-frame.Position = UDim2.new(1, -295, 0, 80)
+
+-- Near top-center, close to FPS panel
+frame.AnchorPoint = Vector2.new(0.5, 0)
+frame.Position = UDim2.new(0.5, 180, 0, 8)
+
 frame.BackgroundColor3 = Color3.fromRGB(24, 25, 38)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -101,75 +158,42 @@ title.Font = Enum.Font.GothamBold
 title.Parent = frame
 
 local function makeButton(name, text, x)
-    local button = Instance.new("TextButton")
-    button.Name = name
-    button.Size = UDim2.fromOffset(128, 42)
-    button.Position = UDim2.fromOffset(x, 48)
-    button.BackgroundColor3 = Color3.fromRGB(55, 58, 78)
-    button.Text = text
-    button.TextColor3 = Color3.new(1, 1, 1)
-    button.TextSize = 13
-    button.Font = Enum.Font.GothamBold
-    button.Parent = frame
+    local b = Instance.new("TextButton")
+    b.Name = name
+    b.Size = UDim2.fromOffset(128, 42)
+    b.Position = UDim2.fromOffset(x, 48)
+    b.BackgroundColor3 = Color3.fromRGB(55, 58, 78)
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.TextSize = 12
+    b.Font = Enum.Font.GothamBold
+    b.Parent = frame
 
-    Instance.new("UICorner", button).CornerRadius =
+    Instance.new("UICorner", b).CornerRadius =
         UDim.new(0, 8)
 
-    return button
+    return b
 end
-
-local viButton = makeButton(
-    "VietnameseButton", "🇻🇳 TIẾNG VIỆT", 7
-)
-local enButton = makeButton(
-    "EnglishButton", "🌐 ENGLISH", 145
-)
 
 local activeColor = Color3.fromRGB(75, 95, 210)
 local inactiveColor = Color3.fromRGB(55, 58, 78)
 
--- Scan accessible GUI text
-local function scanGui()
-    local roots = {parent}
+local viButton = makeButton(
+    "VietnameseButton", "🇻🇳 TIẾNG VIỆT", 7
+)
 
-    pcall(function()
-        table.insert(roots, player:FindFirstChildOfClass("PlayerGui"))
-    end)
+local enButton = makeButton(
+    "EnglishButton", "🌐 ENGLISH", 145
+)
 
-    for _, root in ipairs(roots) do
-        if root then
-            pcall(function()
-                for _, obj in ipairs(root:GetDescendants()) do
-                    if obj ~= gui and (
-                        obj:IsA("TextLabel")
-                        or obj:IsA("TextButton")
-                        or obj:IsA("TextBox")
-                    ) then
-                        if originals[obj] == nil then
-                            originals[obj] = obj.Text
-                        end
-
-                        if currentLanguage == "vi" then
-                            local original = originals[obj]
-                            obj.Text = translations[original]
-                                or original
-                        else
-                            obj.Text = originals[obj]
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end
-
-local function setLanguage(language)
-    currentLanguage = language
+local function setLanguage(lang)
+    language = lang
 
     viButton.BackgroundColor3 =
-        language == "vi" and activeColor or inactiveColor
+        lang == "vi" and activeColor or inactiveColor
+
     enButton.BackgroundColor3 =
-        language == "en" and activeColor or inactiveColor
+        lang == "en" and activeColor or inactiveColor
 
     scanGui()
 end
@@ -182,17 +206,18 @@ enButton.Activated:Connect(function()
     setLanguage("en")
 end)
 
--- Drag GUI by its title
+-- Drag by title bar, supports touch
 local dragging = false
 local dragStart
-local startPos
+local startPosition
 
 title.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
+
         dragging = true
         dragStart = input.Position
-        startPos = frame.Position
+        startPosition = frame.Position
     end
 end)
 
@@ -201,12 +226,14 @@ UserInputService.InputChanged:Connect(function(input)
         input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch
     ) then
+
         local delta = input.Position - dragStart
+
         frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
         )
     end
 end)
@@ -218,34 +245,13 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Call Sena loader separately
+-- Periodically scan new GUI elements
 task.spawn(function()
-    local ok, err = pcall(function()
-        local source = game:HttpGet(
-            "https://senahub.xyz/senaexclusive"
-        )
-
-        assert(type(source) == "string" and #source > 0,
-            "Sena loader returned empty source")
-
-        local chunk, compileError = loadstring(source)
-        assert(chunk, compileError or "Cannot compile Sena loader")
-        chunk()
-    end)
-
-    if not ok then
-        warn("[Sena Hub X Nhat Khanh] Sena loader error: "
-            .. tostring(err))
-    end
-end)
-
--- Keep checking for newly created text
-task.spawn(function()
-    task.wait(3)
+    task.wait(2)
 
     while gui.Parent do
         scanGui()
-        task.wait(2)
+        task.wait(1)
     end
 end)
 
