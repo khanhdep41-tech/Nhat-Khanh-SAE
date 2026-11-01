@@ -1,8 +1,8 @@
 
 --[[
-    NHAT KHANH HUB
-    Giao diện nhỏ gọn, có thể kéo trên màn hình.
-    Ảnh nền tải từ GitHub và lưu vào file executor nếu được hỗ trợ.
+    NHAT KHANH HUB - QUICK STEAL
+    GUI bên phải, kéo được, có ảnh nền và avatar tròn.
+    Đã ẩn dòng trạng thái trên GUI.
 ]]
 
 local Players = game:GetService("Players")
@@ -12,13 +12,10 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local env = (getgenv and getgenv()) or _G
 
-local IMAGE_URL =
-    "https://raw.githubusercontent.com/khanhdep41-tech/Nhat-Khanh-SAE/refs/heads/main/IMG_9880.jpeg"
-
+local IMAGE_URL = "https://raw.githubusercontent.com/khanhdep41-tech/Nhat-Khanh-SAE/refs/heads/main/IMG_9880.jpeg"
 local FOLDER = "NhatKhanhHub"
 local IMAGE_PATH = FOLDER .. "/IMG_9880.jpeg"
 
--- Xóa GUI cũ
 pcall(function()
     if CoreGui:FindFirstChild("NhatKhanhHub") then
         CoreGui.NhatKhanhHub:Destroy()
@@ -30,90 +27,83 @@ pcall(function()
     end
 end)
 
--- Tải ảnh và lưu cục bộ nếu executor hỗ trợ
 local function getLocalImageAsset()
     if type(writefile) ~= "function" then
-        warn("[NHAT KHANH] Executor không hỗ trợ writefile.")
         return nil
     end
 
-    local assetFn = getcustomasset or getsynasset
-    if type(assetFn) ~= "function" then
-        warn("[NHAT KHANH] Executor không hỗ trợ nạp ảnh cục bộ.")
+    if type(getcustomasset) ~= "function"
+        and type(getsynasset) ~= "function" then
         return nil
     end
 
-    if type(makefolder) == "function" then
-        pcall(makefolder, FOLDER)
-    end
-
-    -- Đọc ảnh đã lưu nếu có
-    local data
-    if type(isfile) == "function"
-        and type(readfile) == "function"
-        and isfile(IMAGE_PATH) then
-
-        local okRead, result = pcall(readfile, IMAGE_PATH)
-        if okRead and type(result) == "string"
-            and #result > 0 then
-            data = result
+    pcall(function()
+        if type(makefolder) == "function"
+            and type(isfolder) == "function"
+            and not isfolder(FOLDER) then
+            makefolder(FOLDER)
         end
+    end)
+
+    local imageData
+
+    if type(isfile) == "function"
+        and isfile(IMAGE_PATH)
+        and type(readfile) == "function" then
+        pcall(function()
+            imageData = readfile(IMAGE_PATH)
+        end)
     end
 
-    -- Nếu chưa có thì tải ảnh mới
-    if not data then
-        local okHttp, result = pcall(function()
+    if not imageData or #imageData == 0 then
+        local ok, result = pcall(function()
             return game:HttpGet(IMAGE_URL)
         end)
 
-        if not okHttp or type(result) ~= "string"
+        if not ok or type(result) ~= "string"
             or #result == 0 then
-            warn("[NHAT KHANH] Không tải được ảnh nền.")
             return nil
         end
 
-        data = result
-
-        local okWrite, err = pcall(writefile, IMAGE_PATH, data)
-        if not okWrite then
-            warn("[NHAT KHANH] Không lưu được ảnh: " .. tostring(err))
-        end
+        imageData = result
+        pcall(writefile, IMAGE_PATH, imageData)
     end
 
-    local okAsset, asset = pcall(assetFn, IMAGE_PATH)
-    if okAsset and type(asset) == "string" then
+    local assetFn = getcustomasset or getsynasset
+    local ok, asset = pcall(assetFn, IMAGE_PATH)
+
+    if ok and type(asset) == "string" then
         return asset
     end
 
-    warn("[NHAT KHANH] Không nạp được ảnh cục bộ.")
     return nil
 end
 
 local function new(className, properties, parent)
     local obj = Instance.new(className)
+
     for key, value in pairs(properties) do
         obj[key] = value
     end
+
     obj.Parent = parent
     return obj
 end
 
--- Tạo GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "NhatKhanhHub"
 gui.ResetOnSpawn = false
 gui.DisplayOrder = 999
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local okParent = pcall(function()
+local parentOK = pcall(function()
     gui.Parent = CoreGui
 end)
 
-if not okParent or not gui.Parent then
+if not parentOK or not gui.Parent then
     gui.Parent = player:WaitForChild("PlayerGui")
 end
 
--- Khung nhỏ bên phải màn hình
 local panel = new("Frame", {
     Name = "MainPanel",
     Size = UDim2.fromOffset(280, 164),
@@ -132,11 +122,10 @@ new("UICorner", {
 
 new("UIStroke", {
     Color = Color3.fromRGB(105, 72, 132),
-    Thickness = 1,
-    Transparency = 0.65,
+    Thickness = 1.5,
+    Transparency = 0.12,
 }, panel)
 
--- Ảnh nền
 local imageAsset = getLocalImageAsset()
 
 if imageAsset then
@@ -146,31 +135,34 @@ if imageAsset then
         Position = UDim2.fromScale(0, 0),
         BackgroundTransparency = 1,
         Image = imageAsset,
-        ImageTransparency = 0.15,
+        ImageTransparency = 0.38,
         ScaleType = Enum.ScaleType.Crop,
         ZIndex = 1,
     }, panel)
 end
 
--- Lớp phủ nhẹ để chữ dễ đọc
 new("Frame", {
     Name = "ImageShade",
     Size = UDim2.fromScale(1, 1),
     BackgroundColor3 = Color3.fromRGB(16, 10, 24),
-    BackgroundTransparency = imageAsset and 0.55 or 0.02,
+    BackgroundTransparency = imageAsset and 0.24 or 0.02,
     BorderSizePixel = 0,
     ZIndex = 2,
 }, panel)
 
--- Thanh tiêu đề
 local header = new("Frame", {
     Name = "Header",
     Size = UDim2.new(1, 0, 0, 42),
-    BackgroundTransparency = 1,
+    BackgroundColor3 = Color3.fromRGB(15, 10, 22),
+    BackgroundTransparency = 0.12,
     BorderSizePixel = 0,
     Active = true,
     ZIndex = 3,
 }, panel)
+
+new("UICorner", {
+    CornerRadius = UDim.new(0, 10)
+}, header)
 
 new("TextLabel", {
     Name = "Title",
@@ -178,8 +170,8 @@ new("TextLabel", {
     Position = UDim2.fromOffset(12, 0),
     BackgroundTransparency = 1,
     Text = "NHAT KHANH",
-    TextColor3 = Color3.fromRGB(230, 170, 255),
-    TextSize = 15,
+    TextColor3 = Color3.fromRGB(220, 153, 255),
+    TextSize = 14,
     Font = Enum.Font.GothamBold,
     TextXAlignment = Enum.TextXAlignment.Left,
     ZIndex = 4,
@@ -189,10 +181,9 @@ local close = new("TextButton", {
     Name = "Close",
     Size = UDim2.fromOffset(26, 26),
     Position = UDim2.new(1, -32, 0, 8),
-    BackgroundColor3 = Color3.fromRGB(35, 28, 42),
-    BackgroundTransparency = 0.25,
+    BackgroundColor3 = Color3.fromRGB(48, 37, 56),
     Text = "×",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
+    TextColor3 = Color3.fromRGB(245, 245, 245),
     TextSize = 19,
     Font = Enum.Font.Gotham,
     BorderSizePixel = 0,
@@ -203,28 +194,29 @@ new("UICorner", {
     CornerRadius = UDim.new(0, 6)
 }, close)
 
--- Trạng thái
+-- Dòng trạng thái vẫn được tạo để giữ tương thích với code,
+-- nhưng bị ẩn hoàn toàn khỏi giao diện.
 local status = new("TextLabel", {
     Name = "Status",
     Size = UDim2.new(1, -20, 0, 15),
     Position = UDim2.fromOffset(10, 43),
     BackgroundTransparency = 1,
-    Text = "Sẵn sàng",
-    TextColor3 = Color3.fromRGB(230, 220, 235),
+    Text = "",
+    TextColor3 = Color3.fromRGB(205, 205, 210),
     TextSize = 10,
     Font = Enum.Font.Gotham,
     TextXAlignment = Enum.TextXAlignment.Left,
+    Visible = false,
     ZIndex = 4,
 }, panel)
 
--- Tạo hàng công tắc
 local function createToggle(label, y)
     local row = new("Frame", {
         Name = "ToggleRow",
         Size = UDim2.new(1, -20, 0, 42),
         Position = UDim2.fromOffset(10, y),
         BackgroundColor3 = Color3.fromRGB(72, 43, 95),
-        BackgroundTransparency = 0.28,
+        BackgroundTransparency = 0.10,
         BorderSizePixel = 0,
         ZIndex = 3,
     }, panel)
@@ -239,7 +231,7 @@ local function createToggle(label, y)
         Position = UDim2.fromOffset(12, 0),
         BackgroundTransparency = 1,
         Text = label,
-        TextColor3 = Color3.fromRGB(255, 250, 255),
+        TextColor3 = Color3.fromRGB(250, 247, 252),
         TextSize = 12,
         Font = Enum.Font.GothamSemibold,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -296,7 +288,6 @@ local autoBtn, renderAuto =
 local snipeBtn, renderSnipe =
     createToggle("Săn trứng từ script khác", 111)
 
--- Kết nối runtime Sena
 local function getRuntime()
     return env.__SenaV4EggRuntime
 end
@@ -305,8 +296,7 @@ autoBtn.Activated:Connect(function()
     local rt = getRuntime()
 
     if not rt or type(rt.setEnabled) ~= "function" then
-        status.Text = "Không tìm thấy runtime Sena"
-        warn("[NHAT KHANH] Không tìm thấy runtime Auto Steal.")
+        warn("[Nhat Khanh Hub] Sena runtime chưa sẵn sàng.")
         return
     end
 
@@ -323,11 +313,8 @@ autoBtn.Activated:Connect(function()
     if success then
         autoOn = nextValue
         renderAuto(autoOn)
-        status.Text = "Tự động lấy trứng: "
-            .. (autoOn and "BẬT" or "TẮT")
     else
-        status.Text = "Lỗi bật/tắt tự động"
-        warn("[NHAT KHANH] " .. tostring(err))
+        warn("[Nhat Khanh Hub] " .. tostring(err))
     end
 end)
 
@@ -335,8 +322,7 @@ snipeBtn.Activated:Connect(function()
     local rt = getRuntime()
 
     if not rt then
-        status.Text = "Không tìm thấy runtime Sena"
-        warn("[NHAT KHANH] Không tìm thấy runtime.")
+        warn("[Nhat Khanh Hub] Sena runtime chưa sẵn sàng.")
         return
     end
 
@@ -361,15 +347,12 @@ snipeBtn.Activated:Connect(function()
     if success then
         snipeOn = nextValue
         renderSnipe(snipeOn)
-        status.Text = "Săn trứng script khác: "
-            .. (snipeOn and "BẬT" or "TẮT")
     else
-        status.Text = "Lỗi hook săn trứng"
-        warn("[NHAT KHANH] " .. tostring(err))
+        warn("[Nhat Khanh Hub] " .. tostring(err))
     end
 end)
 
--- Kéo GUI bằng thanh tiêu đề, hỗ trợ cảm ứng
+-- Kéo GUI bằng thanh tiêu đề
 local dragging = false
 local dragInput
 local dragStart
@@ -378,7 +361,6 @@ local startPosition
 header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-
         dragging = true
         dragStart = input.Position
         startPosition = panel.Position
@@ -399,10 +381,8 @@ header.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and (
-        input == dragInput
-        or input.UserInputType == Enum.UserInputType.MouseMovement
-    ) then
+    if dragging and (input == dragInput
+        or input.UserInputType == Enum.UserInputType.MouseMovement) then
         local delta = input.Position - dragStart
 
         panel.Position = UDim2.new(
@@ -414,8 +394,97 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+-- Avatar tròn chỉ có ảnh, không chữ và không viền
+local avatar = new("ImageButton", {
+    Name = "FloatingAvatar",
+    Size = UDim2.fromOffset(50, 50),
+    Position = UDim2.new(1, -64, 0.48, -25),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    Image = imageAsset or "",
+    ScaleType = Enum.ScaleType.Crop,
+    AutoButtonColor = false,
+    Visible = false,
+    Active = true,
+    ZIndex = 20,
+}, gui)
+
+new("UICorner", {
+    CornerRadius = UDim.new(1, 0)
+}, avatar)
+
 close.Activated:Connect(function()
-    gui:Destroy()
+    avatar.Position = UDim2.new(
+        panel.Position.X.Scale,
+        panel.Position.X.Offset
+            + math.floor(panel.AbsoluteSize.X / 2) - 25,
+        panel.Position.Y.Scale,
+        panel.Position.Y.Offset
+            + math.floor(panel.AbsoluteSize.Y / 2) - 25
+    )
+
+    panel.Visible = false
+    avatar.Visible = true
 end)
 
-print("[NHAT KHANH] GUI đã tải; vị trí mặc định bên phải.")
+-- Kéo avatar; bấm nhanh để mở lại GUI
+local avatarDragging = false
+local avatarDragStart
+local avatarStartPosition
+local avatarDragInput
+local avatarMoved = false
+
+avatar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        avatarDragging = true
+        avatarMoved = false
+        avatarDragStart = input.Position
+        avatarStartPosition = avatar.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                avatarDragging = false
+            end
+        end)
+    end
+end)
+
+avatar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+        avatarDragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if avatarDragging and (
+        input == avatarDragInput
+        or input.UserInputType == Enum.UserInputType.MouseMovement
+    ) then
+        local delta = input.Position - avatarDragStart
+
+        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+            avatarMoved = true
+        end
+
+        avatar.Position = UDim2.new(
+            avatarStartPosition.X.Scale,
+            avatarStartPosition.X.Offset + delta.X,
+            avatarStartPosition.Y.Scale,
+            avatarStartPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+avatar.Activated:Connect(function()
+    if avatarMoved then
+        avatarMoved = false
+        return
+    end
+
+    panel.Visible = true
+    avatar.Visible = false
+end)
+
+print("[NHAT KHANH] GUI đã tải.")
