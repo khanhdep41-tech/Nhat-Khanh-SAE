@@ -1,8 +1,14 @@
 
+
 --[[
-    NHAT KHANH HUB - QUICK STEAL
-    GUI bên phải, kéo được, có ảnh nền và avatar tròn.
-    Đã ẩn dòng trạng thái trên GUI.
+    NHAT KHΛNH HUB
+    Transparent GUI | Futuristic Purple
+    Delta compatible UI
+    - Ảnh nền rõ, GUI trong suốt
+    - Không viền tím
+    - Ẩn dòng trạng thái
+    - Avatar tròn chỉ hiển thị ảnh
+    - Kéo GUI và avatar
 ]]
 
 local Players = game:GetService("Players")
@@ -12,28 +18,34 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local env = (getgenv and getgenv()) or _G
 
-local IMAGE_URL = "https://raw.githubusercontent.com/khanhdep41-tech/Nhat-Khanh-SAE/refs/heads/main/IMG_9880.jpeg"
+local IMAGE_URL =
+    "https://raw.githubusercontent.com/khanhdep41-tech/Nhat-Khanh-SAE/refs/heads/main/IMG_9880.jpeg"
+
 local FOLDER = "NhatKhanhHub"
 local IMAGE_PATH = FOLDER .. "/IMG_9880.jpeg"
 
+-- Xóa GUI cũ
 pcall(function()
     if CoreGui:FindFirstChild("NhatKhanhHub") then
         CoreGui.NhatKhanhHub:Destroy()
     end
+end)
 
+pcall(function()
     local pg = player:FindFirstChildOfClass("PlayerGui")
     if pg and pg:FindFirstChild("NhatKhanhHub") then
         pg.NhatKhanhHub:Destroy()
     end
 end)
 
-local function getLocalImageAsset()
+-- Tải ảnh và tạo asset cục bộ nếu executor hỗ trợ
+local function getImageAsset()
     if type(writefile) ~= "function" then
         return nil
     end
 
-    if type(getcustomasset) ~= "function"
-        and type(getsynasset) ~= "function" then
+    local assetFn = getcustomasset or getsynasset
+    if type(assetFn) ~= "function" then
         return nil
     end
 
@@ -45,17 +57,18 @@ local function getLocalImageAsset()
         end
     end)
 
-    local imageData
+    local data
 
     if type(isfile) == "function"
-        and isfile(IMAGE_PATH)
         and type(readfile) == "function" then
         pcall(function()
-            imageData = readfile(IMAGE_PATH)
+            if isfile(IMAGE_PATH) then
+                data = readfile(IMAGE_PATH)
+            end
         end)
     end
 
-    if not imageData or #imageData == 0 then
+    if not data or #data == 0 then
         local ok, result = pcall(function()
             return game:HttpGet(IMAGE_URL)
         end)
@@ -65,12 +78,16 @@ local function getLocalImageAsset()
             return nil
         end
 
-        imageData = result
-        pcall(writefile, IMAGE_PATH, imageData)
+        data = result
+
+        pcall(function()
+            writefile(IMAGE_PATH, data)
+        end)
     end
 
-    local assetFn = getcustomasset or getsynasset
-    local ok, asset = pcall(assetFn, IMAGE_PATH)
+    local ok, asset = pcall(function()
+        return assetFn(IMAGE_PATH)
+    end)
 
     if ok and type(asset) == "string" then
         return asset
@@ -79,166 +96,158 @@ local function getLocalImageAsset()
     return nil
 end
 
-local function new(className, properties, parent)
-    local obj = Instance.new(className)
+local imageAsset = getImageAsset()
+
+-- Hàm tạo đối tượng UI
+local function create(className, properties, parent)
+    local object = Instance.new(className)
 
     for key, value in pairs(properties) do
-        obj[key] = value
+        object[key] = value
     end
 
-    obj.Parent = parent
-    return obj
+    object.Parent = parent
+    return object
 end
 
+-- ScreenGui
 local gui = Instance.new("ScreenGui")
 gui.Name = "NhatKhanhHub"
 gui.ResetOnSpawn = false
 gui.DisplayOrder = 999
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local parentOK = pcall(function()
+local parentSuccess = pcall(function()
     gui.Parent = CoreGui
 end)
 
-if not parentOK or not gui.Parent then
+if not parentSuccess or not gui.Parent then
     gui.Parent = player:WaitForChild("PlayerGui")
 end
 
-local panel = new("Frame", {
+-- GUI chính: trong suốt, không viền
+local panel = create("Frame", {
     Name = "MainPanel",
     Size = UDim2.fromOffset(280, 164),
     Position = UDim2.new(1, -292, 0.48, -82),
     BackgroundColor3 = Color3.fromRGB(20, 13, 29),
-    BackgroundTransparency = 0.12,
+    BackgroundTransparency = 1,
     BorderSizePixel = 0,
     ClipsDescendants = true,
     Active = true,
     ZIndex = 1,
 }, gui)
 
-new("UICorner", {
-    CornerRadius = UDim.new(0, 12)
+create("UICorner", {
+    CornerRadius = UDim.new(0, 12),
 }, panel)
 
-new("UIStroke", {
-    Color = Color3.fromRGB(105, 72, 132),
-    Thickness = 1.5,
-    Transparency = 0.12,
-}, panel)
-
-local imageAsset = getLocalImageAsset()
-
+-- Ảnh nền
 if imageAsset then
-    new("ImageLabel", {
+    create("ImageLabel", {
         Name = "BackgroundImage",
         Size = UDim2.fromScale(1, 1),
         Position = UDim2.fromScale(0, 0),
         BackgroundTransparency = 1,
+        BorderSizePixel = 0,
         Image = imageAsset,
-        ImageTransparency = 0.38,
+        ImageTransparency = 0,
         ScaleType = Enum.ScaleType.Crop,
         ZIndex = 1,
     }, panel)
 end
 
-new("Frame", {
+-- Lớp phủ trong suốt, không làm tối ảnh
+create("Frame", {
     Name = "ImageShade",
     Size = UDim2.fromScale(1, 1),
-    BackgroundColor3 = Color3.fromRGB(16, 10, 24),
-    BackgroundTransparency = imageAsset and 0.24 or 0.02,
+    BackgroundTransparency = 1,
     BorderSizePixel = 0,
     ZIndex = 2,
 }, panel)
 
-local header = new("Frame", {
+-- Thanh tiêu đề trong suốt
+local header = create("Frame", {
     Name = "Header",
     Size = UDim2.new(1, 0, 0, 42),
-    BackgroundColor3 = Color3.fromRGB(15, 10, 22),
-    BackgroundTransparency = 0.12,
+    BackgroundTransparency = 1,
     BorderSizePixel = 0,
     Active = true,
     ZIndex = 3,
 }, panel)
 
-new("UICorner", {
-    CornerRadius = UDim.new(0, 10)
-}, header)
-
-new("TextLabel", {
+-- Tiêu đề kiểu chữ futuristic số 4
+create("TextLabel", {
     Name = "Title",
     Size = UDim2.new(1, -48, 1, 0),
     Position = UDim2.fromOffset(12, 0),
     BackgroundTransparency = 1,
-    Text = "NHAT KHANH",
-    TextColor3 = Color3.fromRGB(220, 153, 255),
-    TextSize = 14,
+    Text = "NHΛT KHΛNH",
+    TextColor3 = Color3.fromRGB(216, 180, 254),
+    TextSize = 15,
     Font = Enum.Font.GothamBold,
     TextXAlignment = Enum.TextXAlignment.Left,
+    TextStrokeTransparency = 0.65,
+    TextStrokeColor3 = Color3.fromRGB(110, 40, 170),
     ZIndex = 4,
 }, header)
 
-local close = new("TextButton", {
+-- Nút đóng
+local close = create("TextButton", {
     Name = "Close",
     Size = UDim2.fromOffset(26, 26),
     Position = UDim2.new(1, -32, 0, 8),
-    BackgroundColor3 = Color3.fromRGB(48, 37, 56),
-    Text = "×",
-    TextColor3 = Color3.fromRGB(245, 245, 245),
-    TextSize = 19,
-    Font = Enum.Font.Gotham,
+    BackgroundTransparency = 1,
     BorderSizePixel = 0,
-    ZIndex = 4,
+    Text = "×",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    TextSize = 22,
+    Font = Enum.Font.GothamBold,
+    ZIndex = 5,
 }, header)
 
-new("UICorner", {
-    CornerRadius = UDim.new(0, 6)
-}, close)
-
--- Dòng trạng thái vẫn được tạo để giữ tương thích với code,
--- nhưng bị ẩn hoàn toàn khỏi giao diện.
-local status = new("TextLabel", {
+-- Trạng thái được giữ ẩn hoàn toàn
+local status = create("TextLabel", {
     Name = "Status",
     Size = UDim2.new(1, -20, 0, 15),
     Position = UDim2.fromOffset(10, 43),
     BackgroundTransparency = 1,
     Text = "",
-    TextColor3 = Color3.fromRGB(205, 205, 210),
-    TextSize = 10,
-    Font = Enum.Font.Gotham,
-    TextXAlignment = Enum.TextXAlignment.Left,
     Visible = false,
     ZIndex = 4,
 }, panel)
 
+-- Tạo nút bật/tắt
 local function createToggle(label, y)
-    local row = new("Frame", {
+    local row = create("Frame", {
         Name = "ToggleRow",
         Size = UDim2.new(1, -20, 0, 42),
         Position = UDim2.fromOffset(10, y),
-        BackgroundColor3 = Color3.fromRGB(72, 43, 95),
-        BackgroundTransparency = 0.10,
+        BackgroundColor3 = Color3.fromRGB(30, 20, 40),
+        BackgroundTransparency = 0.28,
         BorderSizePixel = 0,
         ZIndex = 3,
     }, panel)
 
-    new("UICorner", {
-        CornerRadius = UDim.new(0, 9)
+    create("UICorner", {
+        CornerRadius = UDim.new(0, 9),
     }, row)
 
-    new("TextLabel", {
+    create("TextLabel", {
         Name = "Label",
         Size = UDim2.new(1, -75, 1, 0),
         Position = UDim2.fromOffset(12, 0),
         BackgroundTransparency = 1,
         Text = label,
-        TextColor3 = Color3.fromRGB(250, 247, 252),
+        TextColor3 = Color3.fromRGB(255, 255, 255),
         TextSize = 12,
         Font = Enum.Font.GothamSemibold,
         TextXAlignment = Enum.TextXAlignment.Left,
+        TextStrokeTransparency = 0.85,
         ZIndex = 4,
     }, row)
 
-    local switch = new("TextButton", {
+    local switch = create("TextButton", {
         Name = "Switch",
         Size = UDim2.fromOffset(49, 25),
         Position = UDim2.new(1, -59, 0.5, -12),
@@ -249,21 +258,21 @@ local function createToggle(label, y)
         ZIndex = 4,
     }, row)
 
-    new("UICorner", {
-        CornerRadius = UDim.new(1, 0)
+    create("UICorner", {
+        CornerRadius = UDim.new(1, 0),
     }, switch)
 
-    local knob = new("Frame", {
+    local knob = create("Frame", {
         Name = "Knob",
         Size = UDim2.fromOffset(19, 19),
         Position = UDim2.fromOffset(3, 3),
-        BackgroundColor3 = Color3.fromRGB(250, 250, 250),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
         BorderSizePixel = 0,
         ZIndex = 5,
     }, switch)
 
-    new("UICorner", {
-        CornerRadius = UDim.new(1, 0)
+    create("UICorner", {
+        CornerRadius = UDim.new(1, 0),
     }, knob)
 
     local function render(enabled)
@@ -292,18 +301,19 @@ local function getRuntime()
     return env.__SenaV4EggRuntime
 end
 
+-- Tự động lấy trứng
 autoBtn.Activated:Connect(function()
-    local rt = getRuntime()
+    local runtime = getRuntime()
 
-    if not rt or type(rt.setEnabled) ~= "function" then
-        warn("[Nhat Khanh Hub] Sena runtime chưa sẵn sàng.")
+    if not runtime or type(runtime.setEnabled) ~= "function" then
+        warn("[NHAT KHANH] Sena runtime chưa sẵn sàng.")
         return
     end
 
     local nextValue = not autoOn
 
     local success, err = pcall(function()
-        rt:setEnabled(nextValue)
+        runtime:setEnabled(nextValue)
 
         if type(env.__SenaV4SetStealDeclutter) == "function" then
             env.__SenaV4SetStealDeclutter(nextValue)
@@ -314,33 +324,38 @@ autoBtn.Activated:Connect(function()
         autoOn = nextValue
         renderAuto(autoOn)
     else
-        warn("[Nhat Khanh Hub] " .. tostring(err))
+        warn("[NHAT KHANH] " .. tostring(err))
     end
 end)
 
+-- Săn trứng từ script khác
 snipeBtn.Activated:Connect(function()
-    local rt = getRuntime()
+    local runtime = getRuntime()
 
-    if not rt then
-        warn("[Nhat Khanh Hub] Sena runtime chưa sẵn sàng.")
+    if not runtime then
+        warn("[NHAT KHANH] Sena runtime chưa sẵn sàng.")
         return
     end
 
     local nextValue = not snipeOn
 
     local success, err = pcall(function()
-        if type(rt._reconcileRunningState) == "function" then
-            rt:_reconcileRunningState()
+        if type(runtime._reconcileRunningState) == "function" then
+            runtime:_reconcileRunningState()
         end
 
         if nextValue then
-            assert(type(rt._installSnipeHook) == "function",
-                "Thiếu _installSnipeHook")
-            rt:_installSnipeHook()
+            assert(
+                type(runtime._installSnipeHook) == "function",
+                "Thiếu _installSnipeHook"
+            )
+            runtime:_installSnipeHook()
         else
-            assert(type(rt._removeSnipeHook) == "function",
-                "Thiếu _removeSnipeHook")
-            rt:_removeSnipeHook()
+            assert(
+                type(runtime._removeSnipeHook) == "function",
+                "Thiếu _removeSnipeHook"
+            )
+            runtime:_removeSnipeHook()
         end
     end)
 
@@ -348,13 +363,12 @@ snipeBtn.Activated:Connect(function()
         snipeOn = nextValue
         renderSnipe(snipeOn)
     else
-        warn("[Nhat Khanh Hub] " .. tostring(err))
+        warn("[NHAT KHANH] " .. tostring(err))
     end
 end)
 
 -- Kéo GUI bằng thanh tiêu đề
 local dragging = false
-local dragInput
 local dragStart
 local startPosition
 
@@ -373,16 +387,11 @@ header.InputBegan:Connect(function(input)
     end
 end)
 
-header.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input == dragInput
-        or input.UserInputType == Enum.UserInputType.MouseMovement) then
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
         local delta = input.Position - dragStart
 
         panel.Position = UDim2.new(
@@ -394,8 +403,8 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Avatar tròn chỉ có ảnh, không chữ và không viền
-local avatar = new("ImageButton", {
+-- Avatar tròn chỉ có ảnh, không chữ, không viền
+local avatar = create("ImageButton", {
     Name = "FloatingAvatar",
     Size = UDim2.fromOffset(50, 50),
     Position = UDim2.new(1, -64, 0.48, -25),
@@ -409,10 +418,11 @@ local avatar = new("ImageButton", {
     ZIndex = 20,
 }, gui)
 
-new("UICorner", {
-    CornerRadius = UDim.new(1, 0)
+create("UICorner", {
+    CornerRadius = UDim.new(1, 0),
 }, avatar)
 
+-- Đóng GUI, hiện avatar
 close.Activated:Connect(function()
     avatar.Position = UDim2.new(
         panel.Position.X.Scale,
@@ -427,11 +437,10 @@ close.Activated:Connect(function()
     avatar.Visible = true
 end)
 
--- Kéo avatar; bấm nhanh để mở lại GUI
+-- Kéo avatar
 local avatarDragging = false
 local avatarDragStart
 local avatarStartPosition
-local avatarDragInput
 local avatarMoved = false
 
 avatar.InputBegan:Connect(function(input)
@@ -450,17 +459,10 @@ avatar.InputBegan:Connect(function(input)
     end
 end)
 
-avatar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-        avatarDragInput = input
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
     if avatarDragging and (
-        input == avatarDragInput
-        or input.UserInputType == Enum.UserInputType.MouseMovement
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
     ) then
         local delta = input.Position - avatarDragStart
 
