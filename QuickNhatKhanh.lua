@@ -1,14 +1,12 @@
 
-
 --[[
-    NHAT KHΛNH HUB
-    Transparent GUI | Futuristic Purple
-    Delta compatible UI
-    - Ảnh nền rõ, GUI trong suốt
-    - Không viền tím
+    NHΛT KHΛNH SAE
+    Transparent GUI - Delta
+    - Ảnh nền rõ, không viền ngoài
+    - Hai chức năng không có nền ô đen
+    - Tiêu đề tím đậm: NHΛT KHΛNH SAE
     - Ẩn dòng trạng thái
-    - Avatar tròn chỉ hiển thị ảnh
-    - Kéo GUI và avatar
+    - Avatar tròn chỉ có ảnh, kéo được
 ]]
 
 local Players = game:GetService("Players")
@@ -18,9 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local env = (getgenv and getgenv()) or _G
 
-local IMAGE_URL =
-    "https://raw.githubusercontent.com/khanhdep41-tech/Nhat-Khanh-SAE/refs/heads/main/IMG_9880.jpeg"
-
+local IMAGE_URL = "https://raw.githubusercontent.com/khanhdep41-tech/Nhat-Khanh-SAE/refs/heads/main/IMG_9880.jpeg"
 local FOLDER = "NhatKhanhHub"
 local IMAGE_PATH = FOLDER .. "/IMG_9880.jpeg"
 
@@ -38,7 +34,7 @@ pcall(function()
     end
 end)
 
--- Tải ảnh và tạo asset cục bộ nếu executor hỗ trợ
+-- Tải ảnh nền
 local function getImageAsset()
     if type(writefile) ~= "function" then
         return nil
@@ -75,19 +71,15 @@ local function getImageAsset()
 
         if not ok or type(result) ~= "string"
             or #result == 0 then
+            warn("[NHAT KHANH SAE] Không tải được ảnh nền.")
             return nil
         end
 
         data = result
-
-        pcall(function()
-            writefile(IMAGE_PATH, data)
-        end)
+        pcall(writefile, IMAGE_PATH, data)
     end
 
-    local ok, asset = pcall(function()
-        return assetFn(IMAGE_PATH)
-    end)
+    local ok, asset = pcall(assetFn, IMAGE_PATH)
 
     if ok and type(asset) == "string" then
         return asset
@@ -98,16 +90,15 @@ end
 
 local imageAsset = getImageAsset()
 
--- Hàm tạo đối tượng UI
 local function create(className, properties, parent)
-    local object = Instance.new(className)
+    local obj = Instance.new(className)
 
     for key, value in pairs(properties) do
-        object[key] = value
+        obj[key] = value
     end
 
-    object.Parent = parent
-    return object
+    obj.Parent = parent
+    return obj
 end
 
 -- ScreenGui
@@ -117,11 +108,11 @@ gui.ResetOnSpawn = false
 gui.DisplayOrder = 999
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local parentSuccess = pcall(function()
+local parentOK = pcall(function()
     gui.Parent = CoreGui
 end)
 
-if not parentSuccess or not gui.Parent then
+if not parentOK or not gui.Parent then
     gui.Parent = player:WaitForChild("PlayerGui")
 end
 
@@ -142,7 +133,7 @@ create("UICorner", {
     CornerRadius = UDim.new(0, 12),
 }, panel)
 
--- Ảnh nền
+-- Ảnh nền hiển thị rõ
 if imageAsset then
     create("ImageLabel", {
         Name = "BackgroundImage",
@@ -157,7 +148,7 @@ if imageAsset then
     }, panel)
 end
 
--- Lớp phủ trong suốt, không làm tối ảnh
+-- Lớp phủ hoàn toàn trong suốt
 create("Frame", {
     Name = "ImageShade",
     Size = UDim2.fromScale(1, 1),
@@ -176,19 +167,19 @@ local header = create("Frame", {
     ZIndex = 3,
 }, panel)
 
--- Tiêu đề kiểu chữ futuristic số 4
+-- Tiêu đề futuristic, màu tím đậm hơn
 create("TextLabel", {
     Name = "Title",
     Size = UDim2.new(1, -48, 1, 0),
     Position = UDim2.fromOffset(12, 0),
     BackgroundTransparency = 1,
-    Text = "NHΛT KHΛNH",
-    TextColor3 = Color3.fromRGB(216, 180, 254),
-    TextSize = 15,
+    Text = "NHΛT KHΛNH SAE",
+    TextColor3 = Color3.fromRGB(174, 104, 238),
+    TextSize = 14,
     Font = Enum.Font.GothamBold,
     TextXAlignment = Enum.TextXAlignment.Left,
     TextStrokeTransparency = 0.65,
-    TextStrokeColor3 = Color3.fromRGB(110, 40, 170),
+    TextStrokeColor3 = Color3.fromRGB(90, 35, 145),
     ZIndex = 4,
 }, header)
 
@@ -206,7 +197,7 @@ local close = create("TextButton", {
     ZIndex = 5,
 }, header)
 
--- Trạng thái được giữ ẩn hoàn toàn
+-- Trạng thái ẩn hoàn toàn
 local status = create("TextLabel", {
     Name = "Status",
     Size = UDim2.new(1, -20, 0, 15),
@@ -217,21 +208,16 @@ local status = create("TextLabel", {
     ZIndex = 4,
 }, panel)
 
--- Tạo nút bật/tắt
+-- Tạo nút chức năng không nền ô đen
 local function createToggle(label, y)
     local row = create("Frame", {
         Name = "ToggleRow",
         Size = UDim2.new(1, -20, 0, 42),
         Position = UDim2.fromOffset(10, y),
-        BackgroundColor3 = Color3.fromRGB(30, 20, 40),
-        BackgroundTransparency = 0.28,
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ZIndex = 3,
     }, panel)
-
-    create("UICorner", {
-        CornerRadius = UDim.new(0, 9),
-    }, row)
 
     create("TextLabel", {
         Name = "Label",
@@ -243,7 +229,8 @@ local function createToggle(label, y)
         TextSize = 12,
         Font = Enum.Font.GothamSemibold,
         TextXAlignment = Enum.TextXAlignment.Left,
-        TextStrokeTransparency = 0.85,
+        TextStrokeTransparency = 0.75,
+        TextStrokeColor3 = Color3.fromRGB(20, 10, 30),
         ZIndex = 4,
     }, row)
 
@@ -301,19 +288,19 @@ local function getRuntime()
     return env.__SenaV4EggRuntime
 end
 
--- Tự động lấy trứng
+-- Chức năng tự động lấy trứng
 autoBtn.Activated:Connect(function()
-    local runtime = getRuntime()
+    local rt = getRuntime()
 
-    if not runtime or type(runtime.setEnabled) ~= "function" then
-        warn("[NHAT KHANH] Sena runtime chưa sẵn sàng.")
+    if not rt or type(rt.setEnabled) ~= "function" then
+        warn("[NHAT KHANH SAE] Sena runtime chưa sẵn sàng.")
         return
     end
 
     local nextValue = not autoOn
 
     local success, err = pcall(function()
-        runtime:setEnabled(nextValue)
+        rt:setEnabled(nextValue)
 
         if type(env.__SenaV4SetStealDeclutter) == "function" then
             env.__SenaV4SetStealDeclutter(nextValue)
@@ -324,38 +311,38 @@ autoBtn.Activated:Connect(function()
         autoOn = nextValue
         renderAuto(autoOn)
     else
-        warn("[NHAT KHANH] " .. tostring(err))
+        warn("[NHAT KHANH SAE] " .. tostring(err))
     end
 end)
 
--- Săn trứng từ script khác
+-- Chức năng săn trứng từ script khác
 snipeBtn.Activated:Connect(function()
-    local runtime = getRuntime()
+    local rt = getRuntime()
 
-    if not runtime then
-        warn("[NHAT KHANH] Sena runtime chưa sẵn sàng.")
+    if not rt then
+        warn("[NHAT KHANH SAE] Sena runtime chưa sẵn sàng.")
         return
     end
 
     local nextValue = not snipeOn
 
     local success, err = pcall(function()
-        if type(runtime._reconcileRunningState) == "function" then
-            runtime:_reconcileRunningState()
+        if type(rt._reconcileRunningState) == "function" then
+            rt:_reconcileRunningState()
         end
 
         if nextValue then
             assert(
-                type(runtime._installSnipeHook) == "function",
+                type(rt._installSnipeHook) == "function",
                 "Thiếu _installSnipeHook"
             )
-            runtime:_installSnipeHook()
+            rt:_installSnipeHook()
         else
             assert(
-                type(runtime._removeSnipeHook) == "function",
+                type(rt._removeSnipeHook) == "function",
                 "Thiếu _removeSnipeHook"
             )
-            runtime:_removeSnipeHook()
+            rt:_removeSnipeHook()
         end
     end)
 
@@ -363,7 +350,7 @@ snipeBtn.Activated:Connect(function()
         snipeOn = nextValue
         renderSnipe(snipeOn)
     else
-        warn("[NHAT KHANH] " .. tostring(err))
+        warn("[NHAT KHANH SAE] " .. tostring(err))
     end
 end)
 
@@ -403,7 +390,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Avatar tròn chỉ có ảnh, không chữ, không viền
+-- Avatar tròn chỉ hiển thị ảnh
 local avatar = create("ImageButton", {
     Name = "FloatingAvatar",
     Size = UDim2.fromOffset(50, 50),
@@ -422,7 +409,7 @@ create("UICorner", {
     CornerRadius = UDim.new(1, 0),
 }, avatar)
 
--- Đóng GUI, hiện avatar
+-- Đóng GUI và hiện avatar
 close.Activated:Connect(function()
     avatar.Position = UDim2.new(
         panel.Position.X.Scale,
@@ -489,4 +476,4 @@ avatar.Activated:Connect(function()
     avatar.Visible = false
 end)
 
-print("[NHAT KHANH] GUI đã tải.")
+print("[NHAT KHANH SAE] GUI đã tải.")
