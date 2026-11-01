@@ -225,11 +225,11 @@ local function createToggle(label, y)
         Position = UDim2.fromOffset(12, 0),
         BackgroundTransparency = 1,
         Text = label,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = Color3.fromRGB(0, 0, 0),
         TextSize = 12,
         Font = Enum.Font.GothamSemibold,
         TextXAlignment = Enum.TextXAlignment.Left,
-        TextStrokeTransparency = 0.75,
+        TextStrokeTransparency = 1,
         TextStrokeColor3 = Color3.fromRGB(20, 10, 30),
         ZIndex = 4,
     }, row)
